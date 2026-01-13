@@ -1,4 +1,4 @@
-# AI Chatbot Platform
+# GrudAI
 
 A full-stack AI chatbot platform with JWT authentication, project management, real-time streaming chat, and flowchart generation using OpenRouter API.
 

@@ -1,7 +1,7 @@
 {
-  "name": "chatbot-platform-server",
+  "name": "grudai-server",
   "version": "1.0.0",
-  "description": "Chatbot Platform Backend API",
+  "description": "GrudAI Backend API Server",
   "main": "index.js",
   "type": "module",
   "scripts": {

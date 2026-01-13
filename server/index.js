@@ -95,7 +95,7 @@ app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
-║   🤖 AI Chatbot Platform Server                          ║
+║   🤖 GrudAI Server                                       ║
 ║                                                          ║
 ║   Server running on: http://localhost:${PORT}              ║
 ║   Environment: ${process.env.NODE_ENV || 'development'}                            ║

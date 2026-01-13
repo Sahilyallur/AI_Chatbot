@@ -26,7 +26,7 @@ export default function Navbar() {
                     <circle cx="50" cy="45" r="4" fill="url(#navGrad)" />
                     <circle cx="60" cy="45" r="4" fill="url(#navGrad)" />
                 </svg>
-                AI Chatbot
+                GrudAI
             </Link>
 
             <div className="navbar-nav">
