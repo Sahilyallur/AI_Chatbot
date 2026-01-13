@@ -1,197 +1,326 @@
 # AI Chatbot Platform
 
-A full-stack, scalable chatbot platform with JWT authentication, project management, and LLM-powered conversations using OpenRouter API.
+A full-stack AI chatbot platform with JWT authentication, project management, real-time streaming chat, and flowchart generation using OpenRouter API.
 
-![AI Chatbot Platform](https://img.shields.io/badge/Node.js-18+-green) ![React](https://img.shields.io/badge/React-18-blue) ![SQLite](https://img.shields.io/badge/SQLite-3-orange)
+![Node.js](https://img.shields.io/badge/Node.js-18+-green) ![React](https://img.shields.io/badge/React-18-blue) ![SQLite](https://img.shields.io/badge/SQLite-3-orange)
+
+---
+
+## 📖 Table of Contents
+
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [API Documentation](#-api-documentation)
+- [Project Structure](#-project-structure)
+- [Security](#-security)
+- [Scaling for Production](#-scaling-for-production)
+
+---
 
 ## ✨ Features
 
-- **🔐 Secure Authentication**: JWT-based auth with bcrypt password hashing
-- **📁 Project Management**: Create and manage multiple AI chatbot agents
-- **💬 Real-time Chat**: Streaming responses from multiple LLM providers
-- **📝 Prompt Templates**: Save and reuse prompts across conversations
-- **📎 File Upload**: Attach files to your projects
-- **🎨 Modern UI**: Beautiful dark-themed interface with smooth animations
+| Feature | Description |
+|---------|-------------|
+| 🔐 **Authentication** | JWT-based auth with bcrypt password hashing |
+| 📁 **Project Management** | Create and manage multiple AI chatbot agents |
+| 💬 **Real-time Chat** | Streaming responses from LLM providers |
+| � **Flowcharts** | Mermaid diagram support for visual diagrams |
+| 📝 **Markdown Rendering** | Rich text formatting with code blocks |
+| 📎 **File Upload** | Attach files to your projects |
+| 🎨 **Modern UI** | Dark-themed interface with smooth animations |
 
-## 🏗️ Architecture
+---
+
+## 🏗 Architecture
+
+### System Overview
 
 ```
-AI_Chatbot/
-├── server/                 # Backend (Node.js + Express)
-│   ├── index.js           # Entry point
-│   ├── database/          # SQLite database setup
-│   ├── middleware/        # Auth middleware
-│   ├── routes/            # API endpoints
-│   ├── services/          # LLM integration
-│   └── utils/             # Helper functions
-│
-└── client/                 # Frontend (React + Vite)
-    └── src/
-        ├── api/           # API client
-        ├── components/    # Reusable UI components
-        ├── context/       # React context providers
-        └── pages/         # Application pages
+┌─────────────────────────────────────────────────────────────────┐
+│                         CLIENT (React)                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
+│  │  Login   │  │Dashboard │  │   Chat   │  │ Project Settings │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────────┬─────────┘ │
+│       └─────────────┼───────────────┼────────────────┘          │
+│                     ▼               ▼                           │
+│              ┌─────────────────────────────┐                    │
+│              │       API Client Layer       │                   │
+│              │  (Fetch + Auth Token Mgmt)   │                   │
+│              └──────────────┬──────────────┘                    │
+└─────────────────────────────┼───────────────────────────────────┘
+                              │ HTTP/REST
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       SERVER (Express.js)                       │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                   Middleware Layer                       │    │
+│  │  ┌──────────────┐  ┌───────────┐  ┌──────────────────┐  │    │
+│  │  │  CORS/JSON   │  │  Logging  │  │ JWT Auth Verify  │  │    │
+│  │  └──────────────┘  └───────────┘  └──────────────────┘  │    │
+│  └─────────────────────────┬───────────────────────────────┘    │
+│                            ▼                                    │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                    Route Handlers                        │    │
+│  │  ┌────────┐ ┌─────────┐ ┌──────┐ ┌───────┐ ┌─────────┐  │    │
+│  │  │  Auth  │ │ Projects│ │ Chat │ │Prompts│ │  Files  │  │    │
+│  │  └───┬────┘ └────┬────┘ └──┬───┘ └───┬───┘ └────┬────┘  │    │
+│  └──────┼───────────┼─────────┼─────────┼──────────┼───────┘    │
+│         └───────────┴─────────┼─────────┴──────────┘            │
+│                               ▼                                 │
+│         ┌─────────────────────────────────────┐                 │
+│         │            LLM Service              │                 │
+│         │   (OpenRouter API Integration)      │────────────────►│ OpenRouter API
+│         │    - Streaming SSE responses        │                 │
+│         │    - Multi-model support            │                 │
+│         └─────────────────────────────────────┘                 │
+│                               │                                 │
+│                               ▼                                 │
+│         ┌─────────────────────────────────────┐                 │
+│         │          SQLite Database            │                 │
+│         │  ┌───────┐ ┌────────┐ ┌─────────┐   │                 │
+│         │  │ Users │ │Projects│ │Messages │   │                 │
+│         │  └───────┘ └────────┘ └─────────┘   │                 │
+│         │  ┌───────┐ ┌────────┐               │                 │
+│         │  │Prompts│ │ Files  │               │                 │
+│         │  └───────┘ └────────┘               │                 │
+│         └─────────────────────────────────────┘                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+### Data Flow
+
+1. **Authentication Flow**: User registers/logs in → Server validates → JWT token issued → Stored in localStorage
+2. **Chat Flow**: User sends message → Server streams to OpenRouter → Response chunks sent via SSE → Rendered with markdown
+3. **Project Flow**: CRUD operations with user ownership validation
+
+### Database Schema
+
+```sql
+users (id, email, password_hash, name, created_at)
+    │
+    └──► projects (id, user_id, name, description, system_prompt, model)
+              │
+              ├──► messages (id, project_id, role, content, created_at)
+              ├──► prompts (id, project_id, name, content)
+              └──► files (id, project_id, filename, original_name, size)
+```
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | React 18, Vite | UI framework and build tool |
+| **Routing** | React Router v6 | Client-side navigation |
+| **Backend** | Node.js, Express | REST API server |
+| **Database** | SQLite (sql.js) | Lightweight persistent storage |
+| **Auth** | JWT, bcryptjs | Secure authentication |
+| **LLM** | OpenRouter API | Access to multiple AI models |
+| **Diagrams** | Mermaid | Flowchart rendering |
+| **Markdown** | react-markdown | Rich text formatting |
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- OpenRouter API key (get one at [openrouter.ai](https://openrouter.ai))
+- **Node.js 18+** ([Download](https://nodejs.org/))
+- **OpenRouter API Key** ([Get one free](https://openrouter.ai/))
 
-### 1. Install Dependencies
+### Step 1: Clone the Repository
 
 ```bash
-# Install backend dependencies
-cd server
-npm install
-
-# Install frontend dependencies
-cd ../client
-npm install
+git clone https://github.com/Sahilyallur/AI_Chatbot.git
+cd AI_Chatbot
 ```
 
-### 2. Configure Environment
+### Step 2: Setup Backend
 
-Edit `server/.env` and add your OpenRouter API key:
+```bash
+# Navigate to server directory
+cd server
 
+# Install dependencies
+npm install
+
+# Create environment file from template
+cp .env.example .env
+
+# Edit .env and add your OpenRouter API key
+# Replace 'your-openrouter-api-key-here' with your actual key
+```
+
+**Configure `server/.env`:**
 ```env
 PORT=3001
-JWT_SECRET=your-secure-secret-key-here
-OPENROUTER_API_KEY=your-openrouter-api-key-here
+JWT_SECRET=your-secure-secret-key-change-this
+JWT_EXPIRES_IN=7d
+OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 DEFAULT_MODEL=openai/gpt-3.5-turbo
 ```
 
-### 3. Start the Application
+### Step 3: Setup Frontend
 
 ```bash
-# Terminal 1: Start backend server
-cd server
-npm run dev
-
-# Terminal 2: Start frontend
+# Open new terminal, navigate to client directory
 cd client
-npm run dev
+
+# Install dependencies
+npm install
 ```
 
-### 4. Open in Browser
+### Step 4: Run the Application
 
-Navigate to `http://localhost:5173` to access the application.
+**Terminal 1 - Start Backend:**
+```bash
+cd server
+npm run dev
+# Server runs on http://localhost:3001
+```
+
+**Terminal 2 - Start Frontend:**
+```bash
+cd client
+npm run dev
+# App runs on http://localhost:5173
+```
+
+### Step 5: Access the Application
+
+Open your browser and navigate to: **http://localhost:5173**
+
+1. **Register** a new account
+2. **Create** a new project/chatbot
+3. **Start chatting** with your AI assistant!
+
+---
 
 ## 📚 API Documentation
 
-### Authentication
+### Authentication Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/auth/register` | POST | Register new user |
-| `/api/auth/login` | POST | Login user |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/auth/register` | Create new user | No |
+| POST | `/api/auth/login` | Login user | No |
+| POST | `/api/auth/verify` | Verify JWT token | No |
 
-### Projects
+### User Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/projects` | GET | List all projects |
-| `/api/projects` | POST | Create new project |
-| `/api/projects/:id` | GET | Get project details |
-| `/api/projects/:id` | PUT | Update project |
-| `/api/projects/:id` | DELETE | Delete project |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/users/me` | Get current user | Yes |
+| PUT | `/api/users/me` | Update profile | Yes |
 
-### Chat
+### Project Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/projects/:id/messages` | GET | Get chat history |
-| `/api/projects/:id/chat` | POST | Send message (streaming) |
-| `/api/projects/:id/messages` | DELETE | Clear chat history |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/projects` | List all projects | Yes |
+| POST | `/api/projects` | Create project | Yes |
+| GET | `/api/projects/:id` | Get project details | Yes |
+| PUT | `/api/projects/:id` | Update project | Yes |
+| DELETE | `/api/projects/:id` | Delete project | Yes |
 
-### Prompts
+### Chat Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/projects/:id/prompts` | GET | List prompts |
-| `/api/projects/:id/prompts` | POST | Create prompt |
-| `/api/prompts/:id` | PUT | Update prompt |
-| `/api/prompts/:id` | DELETE | Delete prompt |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/projects/:id/messages` | Get chat history | Yes |
+| POST | `/api/projects/:id/chat` | Send message (streaming) | Yes |
+| DELETE | `/api/projects/:id/messages` | Clear chat history | Yes |
 
-### Files
+### Prompts & Files
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/projects/:id/files` | GET | List files |
-| `/api/projects/:id/files` | POST | Upload file |
-| `/api/files/:id` | GET | Download file |
-| `/api/files/:id` | DELETE | Delete file |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/projects/:id/prompts` | Manage saved prompts |
+| GET/POST | `/api/projects/:id/files` | Manage file uploads |
 
-## 🔧 Configuration
+---
 
-### Supported LLM Models
-
-The platform supports any model available through OpenRouter:
-
-- `openai/gpt-3.5-turbo` - Fast and cost-effective
-- `openai/gpt-4` - Most capable OpenAI model
-- `openai/gpt-4-turbo` - Latest GPT-4 with larger context
-- `anthropic/claude-3-sonnet` - Balanced performance
-- `anthropic/claude-3-opus` - Most capable Claude model
-- `google/gemini-pro` - Google's latest model
-- `meta-llama/llama-3-70b-instruct` - Open-source alternative
-
-### System Prompt
-
-Each project can have its own system prompt that defines the AI's personality:
+## 📁 Project Structure
 
 ```
-You are a helpful customer support agent for Acme Corp.
-You should be friendly, professional, and always try to help solve customer issues.
-If you don't know something, admit it and offer to connect them with a human agent.
+AI_Chatbot/
+├── client/                    # React Frontend
+│   ├── src/
+│   │   ├── api/              # API client functions
+│   │   ├── components/       # Reusable UI components
+│   │   │   ├── ChatInput.jsx
+│   │   │   ├── ChatMessage.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── Navbar.jsx
+│   │   │   └── ProjectCard.jsx
+│   │   ├── context/          # React context providers
+│   │   ├── pages/            # Page components
+│   │   │   ├── Chat.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Login.jsx
+│   │   │   └── Register.jsx
+│   │   ├── App.jsx           # Main app with routing
+│   │   └── index.css         # Global styles
+│   └── vite.config.js        # Vite configuration
+│
+├── server/                    # Express Backend
+│   ├── database/
+│   │   ├── db.js             # Database connection
+│   │   └── schema.sql        # Table definitions
+│   ├── middleware/
+│   │   └── auth.js           # JWT authentication
+│   ├── routes/
+│   │   ├── auth.js           # Auth endpoints
+│   │   ├── chat.js           # Chat endpoints
+│   │   ├── files.js          # File upload endpoints
+│   │   ├── projects.js       # Project CRUD
+│   │   ├── prompts.js        # Prompt management
+│   │   └── users.js          # User management
+│   ├── services/
+│   │   └── llmService.js     # OpenRouter integration
+│   ├── utils/
+│   │   └── helpers.js        # Utility functions
+│   ├── index.js              # Server entry point
+│   └── .env.example          # Environment template
+│
+└── README.md                  # This file
 ```
 
-## 🛡️ Security Features
+---
 
-- **Password Hashing**: bcrypt with salt rounds
-- **JWT Authentication**: Secure token-based auth with expiration
-- **SQL Parameterization**: Protection against SQL injection
-- **Input Validation**: Server-side validation on all inputs
-- **CORS Configuration**: Restricted to allowed origins
+## � Security
 
-## 📦 Tech Stack
+| Feature | Implementation |
+|---------|----------------|
+| Password Hashing | bcrypt with salt rounds |
+| Authentication | JWT with expiration |
+| SQL Injection | Parameterized queries |
+| CORS | Configured for allowed origins |
+| API Keys | Environment variables (never committed) |
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18, Vite, React Router |
-| Backend | Node.js, Express |
-| Database | SQLite (better-sqlite3) |
-| Auth | JWT, bcryptjs |
-| LLM | OpenRouter API |
-| Styling | Custom CSS with CSS Variables |
+---
 
-## 🔄 Scaling for Production
+## � Scaling for Production
 
 To scale this application for production:
 
 1. **Database**: Migrate from SQLite to PostgreSQL
-   - Change `better-sqlite3` to `pg` package
-   - Update connection string in environment
+2. **Deployment**: Containerize with Docker
+3. **Load Balancing**: Deploy behind nginx or cloud LB
+4. **Caching**: Add Redis for session management
+5. **Monitoring**: Add logging and APM tools
 
-2. **Session Management**: Add Redis for session storage
-
-3. **Containerization**: Use Docker for deployment
-   ```dockerfile
-   FROM node:18-alpine
-   WORKDIR /app
-   COPY package*.json ./
-   RUN npm install --production
-   COPY . .
-   CMD ["node", "index.js"]
-   ```
-
-4. **Load Balancing**: Deploy behind nginx or a cloud load balancer
+---
 
 ## 📝 License
 
 MIT License - feel free to use for your own projects.
+
+---
 
 ## 🤝 Contributing
 
