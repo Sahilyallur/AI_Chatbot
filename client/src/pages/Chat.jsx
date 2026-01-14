@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getProject, getMessages, sendMessageStream, clearMessages, updateProject, deleteProject, getPrompts, createPrompt, deletePrompt, getFiles, uploadFile, deleteFile } from '../api';
+import {
+    getProject, getMessages, sendMessageStream, clearMessages, updateProject, deleteProject,
+    getPrompts, createPrompt, deletePrompt, getFiles, uploadFile, deleteFile,
+    getConversations, createConversation, updateConversation, deleteConversation
+} from '../api';
 import Navbar from '../components/Navbar';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
@@ -18,6 +22,11 @@ export default function Chat() {
     const [error, setError] = useState('');
     const [streamingMessage, setStreamingMessage] = useState('');
 
+    // Conversations
+    const [conversations, setConversations] = useState([]);
+    const [activeConversation, setActiveConversation] = useState(null);
+    const [loadingConversations, setLoadingConversations] = useState(true);
+
     // Settings modal
     const [showSettings, setShowSettings] = useState(false);
     const [editProject, setEditProject] = useState({});
@@ -33,10 +42,19 @@ export default function Chat() {
     const [files, setFiles] = useState([]);
     const [uploading, setUploading] = useState(false);
 
+    // Sidebar collapse
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
     useEffect(() => {
         loadProject();
-        loadMessages();
+        loadConversations();
     }, [projectId]);
+
+    useEffect(() => {
+        if (activeConversation !== null) {
+            loadMessages();
+        }
+    }, [activeConversation]);
 
     useEffect(() => {
         scrollToBottom();
@@ -59,10 +77,33 @@ export default function Chat() {
         }
     }
 
+    async function loadConversations() {
+        try {
+            setLoadingConversations(true);
+            const response = await getConversations(projectId);
+            setConversations(response.data.conversations || []);
+
+            // Set first conversation as active, or create one if none exist
+            if (response.data.conversations && response.data.conversations.length > 0) {
+                setActiveConversation(response.data.conversations[0].id);
+            } else {
+                // No conversations yet - load messages without conversation filter
+                setActiveConversation(null);
+                loadMessages();
+            }
+        } catch (err) {
+            console.error('Load conversations error:', err);
+            setActiveConversation(null);
+            loadMessages();
+        } finally {
+            setLoadingConversations(false);
+        }
+    }
+
     async function loadMessages() {
         try {
-            const response = await getMessages(projectId);
-            setMessages(response.data.messages);
+            const response = await getMessages(projectId, activeConversation);
+            setMessages(response.data.messages || []);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -70,40 +111,107 @@ export default function Chat() {
         }
     }
 
-    async function handleSendMessage(content) {
+    async function handleNewChat() {
+        try {
+            const response = await createConversation(projectId, 'New Chat');
+            const newConv = response.data.conversation;
+            setConversations([newConv, ...conversations]);
+            setActiveConversation(newConv.id);
+            setMessages([]);
+        } catch (err) {
+            setError(err.message);
+        }
+    }
+
+    async function handleSelectConversation(convId) {
+        setActiveConversation(convId);
+        setLoading(true);
+    }
+
+    async function handleDeleteConversation(convId, e) {
+        e.stopPropagation();
+        if (!confirm('Delete this conversation?')) return;
+
+        try {
+            await deleteConversation(convId);
+            setConversations(conversations.filter(c => c.id !== convId));
+
+            // If we deleted the active conversation, switch to another
+            if (activeConversation === convId) {
+                const remaining = conversations.filter(c => c.id !== convId);
+                if (remaining.length > 0) {
+                    setActiveConversation(remaining[0].id);
+                } else {
+                    setActiveConversation(null);
+                    setMessages([]);
+                }
+            }
+        } catch (err) {
+            setError(err.message);
+        }
+    }
+
+    async function handleSendMessage(content, fileIds = []) {
         setSending(true);
         setError('');
         setStreamingMessage('');
+
+        // If no active conversation, create one first
+        let conversationId = activeConversation;
+        if (!conversationId) {
+            try {
+                const response = await createConversation(projectId, content.substring(0, 30) + '...');
+                const newConv = response.data.conversation;
+                setConversations([newConv, ...conversations]);
+                conversationId = newConv.id;
+                setActiveConversation(conversationId);
+            } catch (err) {
+                setError(err.message);
+                setSending(false);
+                return;
+            }
+        }
 
         // Add user message immediately
         const userMessage = {
             id: Date.now(),
             role: 'user',
-            content,
+            content: fileIds.length > 0 ? `📎 [File attached]\n\n${content}` : content,
             created_at: new Date().toISOString()
         };
         setMessages(prev => [...prev, userMessage]);
 
         try {
+            let fullResponse = '';
             await sendMessageStream(
                 projectId,
                 content,
                 (chunk, fullContent) => {
+                    fullResponse = fullContent;
                     setStreamingMessage(fullContent);
-                }
+                },
+                { conversationId, fileIds }
             );
 
             // Add the complete assistant message
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 role: 'assistant',
-                content: streamingMessage || 'Response received',
+                content: fullResponse || 'Response received',
                 created_at: new Date().toISOString()
             }]);
             setStreamingMessage('');
 
-            // Reload messages to get proper IDs
-            loadMessages();
+            // Update conversation title if it's new
+            if (conversations.find(c => c.id === conversationId)?.title === 'New Chat') {
+                const newTitle = content.substring(0, 40) + (content.length > 40 ? '...' : '');
+                try {
+                    await updateConversation(conversationId, newTitle);
+                    setConversations(conversations.map(c =>
+                        c.id === conversationId ? { ...c, title: newTitle } : c
+                    ));
+                } catch (e) { }
+            }
 
         } catch (err) {
             setError(err.message);
@@ -113,10 +221,10 @@ export default function Chat() {
     }
 
     async function handleClearChat() {
-        if (!confirm('Are you sure you want to clear all chat history?')) return;
+        if (!confirm('Are you sure you want to clear this chat history?')) return;
 
         try {
-            await clearMessages(projectId);
+            await clearMessages(projectId, activeConversation);
             setMessages([]);
         } catch (err) {
             setError(err.message);
@@ -217,7 +325,22 @@ export default function Chat() {
         }
     }
 
-    if (loading) {
+    // Upload file from chat input (for OCR/text analysis)
+    async function handleChatFileUpload(file) {
+        setUploading(true);
+        try {
+            const response = await uploadFile(projectId, file);
+            console.log('File uploaded with text extraction:', response.data);
+            return response.data.file;
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        } finally {
+            setUploading(false);
+        }
+    }
+
+    if (loading && loadingConversations) {
         return (
             <>
                 <Navbar />
@@ -231,82 +354,149 @@ export default function Chat() {
     return (
         <>
             <Navbar />
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                {/* Sidebar */}
-                <div className="sidebar">
-                    <div className="sidebar-header">
-                        <Link to="/dashboard" className="btn btn-ghost w-full" style={{ justifyContent: 'flex-start' }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="15,18 9,12 15,6" />
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', height: 'calc(100vh - 65px)' }}>
+                {/* Sidebar - Full height, doesn't scroll with chat */}
+                <div className={`sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 'calc(100vh - 65px)',
+                    height: 'calc(100vh - 65px)',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    width: sidebarCollapsed ? '60px' : '280px',
+                    transition: 'width 0.3s ease'
+                }}>
+                    {/* Sidebar Header with Toggle and Back buttons */}
+                    <div className="sidebar-header-row">
+                        <button
+                            className="sidebar-toggle-sm"
+                            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                {sidebarCollapsed ? (
+                                    <polyline points="9,6 15,12 9,18" />
+                                ) : (
+                                    <polyline points="15,6 9,12 15,18" />
+                                )}
                             </svg>
-                            Back to Projects
-                        </Link>
+                        </button>
+
+                        {!sidebarCollapsed && (
+                            <Link to="/dashboard" className="sidebar-back-btn" title="Back to Projects">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                    <polyline points="9,22 9,12 15,12 15,22" />
+                                </svg>
+                                <span>Projects</span>
+                            </Link>
+                        )}
                     </div>
 
-                    <div className="sidebar-content">
-                        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, marginBottom: 'var(--space-2)' }}>
-                            {project?.name}
-                        </h3>
-                        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
-                            {project?.description || 'No description'}
-                        </p>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                    {/* New Chat Button */}
+                    {!sidebarCollapsed && (
+                        <div style={{ padding: 'var(--space-3) var(--space-4)' }}>
                             <button
-                                className="sidebar-item"
-                                onClick={() => { setShowPrompts(true); loadPrompts(); }}
+                                className="btn btn-primary w-full"
+                                onClick={handleNewChat}
+                                style={{ width: '100%' }}
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                                    <polyline points="14,2 14,8 20,8" />
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
                                 </svg>
-                                Prompts
-                            </button>
-
-                            <button
-                                className="sidebar-item"
-                                onClick={() => { setShowFiles(true); loadFiles(); }}
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                                </svg>
-                                Files
-                            </button>
-
-                            <button
-                                className="sidebar-item"
-                                onClick={() => setShowSettings(true)}
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="3" />
-                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                                </svg>
-                                Settings
-                            </button>
-
-                            <button
-                                className="sidebar-item"
-                                onClick={handleClearChat}
-                                style={{ color: 'var(--error-500)' }}
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="3,6 5,6 21,6" />
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                                Clear Chat
+                                New Chat
                             </button>
                         </div>
-                    </div>
+                    )}
 
-                    <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border-color)' }}>
-                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                            Model: {project?.model || 'Default'}
+                    {/* Conversations List */}
+                    {!sidebarCollapsed && (
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '0 var(--space-2)' }}>
+                            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', padding: 'var(--space-2) var(--space-2)', textTransform: 'uppercase' }}>
+                                Conversations
+                            </div>
+                            {conversations.length === 0 ? (
+                                <div style={{ padding: 'var(--space-4)', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)' }}>
+                                    No conversations yet
+                                </div>
+                            ) : (
+                                conversations.map(conv => (
+                                    <div
+                                        key={conv.id}
+                                        className={`conversation-item ${activeConversation === conv.id ? 'active' : ''}`}
+                                        onClick={() => handleSelectConversation(conv.id)}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                        </svg>
+                                        <span className="conversation-title">{conv.title}</span>
+                                        <button
+                                            className="conversation-delete"
+                                            onClick={(e) => handleDeleteConversation(conv.id, e)}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <polyline points="3,6 5,6 21,6" />
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                ))
+                            )}
                         </div>
-                    </div>
+                    )}
+
+                    {/* Project Info & Actions */}
+                    {!sidebarCollapsed && (
+                        <div style={{ borderTop: '1px solid var(--border-color)', padding: 'var(--space-3) var(--space-4)' }}>
+                            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', color: 'var(--text-primary)' }}>
+                                {project?.name}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                                <button
+                                    className="sidebar-item-compact"
+                                    onClick={() => { setShowPrompts(true); loadPrompts(); }}
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                                    </svg>
+                                    Prompts
+                                </button>
+
+                                <button
+                                    className="sidebar-item-compact"
+                                    onClick={() => { setShowFiles(true); loadFiles(); }}
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                                    </svg>
+                                    Files
+                                </button>
+
+                                <button
+                                    className="sidebar-item-compact"
+                                    onClick={() => setShowSettings(true)}
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="3" />
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                    </svg>
+                                    Settings
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Chat Area */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    marginLeft: sidebarCollapsed ? '60px' : '280px',
+                    transition: 'margin-left 0.3s ease'
+                }}>
                     {error && (
                         <div style={{
                             padding: 'var(--space-3) var(--space-4)',
@@ -355,7 +545,12 @@ export default function Chat() {
                         )}
                     </div>
 
-                    <ChatInput onSend={handleSendMessage} disabled={sending} />
+                    <ChatInput
+                        onSend={handleSendMessage}
+                        onFileUpload={handleChatFileUpload}
+                        disabled={sending}
+                        uploading={uploading}
+                    />
                 </div>
             </div>
 
@@ -407,9 +602,9 @@ export default function Chat() {
                             <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
                             <option value="openai/gpt-4">GPT-4</option>
                             <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
-                            <option value="anthropic/claude-3-sonnet">Claude 3 Sonnet</option>
-                            <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
-                            <option value="google/gemini-pro">Gemini Pro</option>
+                            <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                            <option value="anthropic/claude-3-opus-20240229">Claude 3 Opus</option>
+                            <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
                             <option value="meta-llama/llama-3-70b-instruct">Llama 3 70B</option>
                         </select>
                     </div>

@@ -165,11 +165,40 @@ export async function deletePrompt(id) {
 }
 
 // ============================================
+// Conversations API
+// ============================================
+
+export async function getConversations(projectId) {
+    return apiRequest(`/projects/${projectId}/conversations`);
+}
+
+export async function createConversation(projectId, title = 'New Chat') {
+    return apiRequest(`/projects/${projectId}/conversations`, {
+        method: 'POST',
+        body: JSON.stringify({ title })
+    });
+}
+
+export async function updateConversation(id, title) {
+    return apiRequest(`/conversations/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ title })
+    });
+}
+
+export async function deleteConversation(id) {
+    return apiRequest(`/conversations/${id}`, {
+        method: 'DELETE'
+    });
+}
+
+// ============================================
 // Chat API
 // ============================================
 
-export async function getMessages(projectId, limit = 50, offset = 0) {
-    return apiRequest(`/projects/${projectId}/messages?limit=${limit}&offset=${offset}`);
+export async function getMessages(projectId, conversationId = null, limit = 50, offset = 0) {
+    const convParam = conversationId ? `&conversationId=${conversationId}` : '';
+    return apiRequest(`/projects/${projectId}/messages?limit=${limit}&offset=${offset}${convParam}`);
 }
 
 export async function sendMessage(projectId, message, options = {}) {
@@ -241,8 +270,9 @@ export async function sendMessageStream(projectId, message, onChunk, options = {
     return fullContent;
 }
 
-export async function clearMessages(projectId) {
-    return apiRequest(`/projects/${projectId}/messages`, {
+export async function clearMessages(projectId, conversationId = null) {
+    const convParam = conversationId ? `?conversationId=${conversationId}` : '';
+    return apiRequest(`/projects/${projectId}/messages${convParam}`, {
         method: 'DELETE'
     });
 }
@@ -253,6 +283,10 @@ export async function clearMessages(projectId) {
 
 export async function getFiles(projectId) {
     return apiRequest(`/projects/${projectId}/files`);
+}
+
+export async function getFileText(fileId) {
+    return apiRequest(`/files/${fileId}/text`);
 }
 
 export async function uploadFile(projectId, file) {

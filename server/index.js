@@ -17,6 +17,7 @@ import projectRoutes from './routes/projects.js';
 import promptRoutes from './routes/prompts.js';
 import chatRoutes from './routes/chat.js';
 import fileRoutes from './routes/files.js';
+import conversationRoutes from './routes/conversations.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,9 +52,10 @@ try {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
-app.use('/api', promptRoutes);  // Handles /api/projects/:id/prompts and /api/prompts/:id
-app.use('/api', chatRoutes);    // Handles /api/projects/:id/messages and /api/projects/:id/chat
-app.use('/api', fileRoutes);    // Handles /api/projects/:id/files and /api/files/:id
+app.use('/api', promptRoutes);         // Handles /api/projects/:id/prompts and /api/prompts/:id
+app.use('/api', chatRoutes);           // Handles /api/projects/:id/messages and /api/projects/:id/chat
+app.use('/api', fileRoutes);           // Handles /api/projects/:id/files and /api/files/:id
+app.use('/api', conversationRoutes);   // Handles /api/projects/:id/conversations
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

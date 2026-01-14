@@ -81,12 +81,17 @@ router.post('/login', async (req, res) => {
 
         // Find user
         const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+        console.log('Login attempt for:', email, 'User found:', !!user);
+
         if (!user) {
             return errorResponse(res, 401, 'Invalid credentials', 'Email or password is incorrect');
         }
 
         // Verify password
+        console.log('Password hash from DB:', user.password_hash ? user.password_hash.substring(0, 20) + '...' : 'NULL');
         const isValid = await bcrypt.compare(password, user.password_hash);
+        console.log('Password valid:', isValid);
+
         if (!isValid) {
             return errorResponse(res, 401, 'Invalid credentials', 'Email or password is incorrect');
         }
