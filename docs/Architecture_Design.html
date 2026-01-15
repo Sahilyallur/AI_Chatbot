@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrudAI - Architecture & Design Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1a1a2e;
+            background: #ffffff;
+            padding: 40px 60px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #1a1a2e;
+            border-bottom: 3px solid #6366f1;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: #3730a3;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            border-left: 4px solid #6366f1;
+            padding-left: 15px;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            color: #4338ca;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            border-bottom: none;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            color: #6366f1;
+            font-weight: 500;
+        }
+
+        .header .date {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+
+        .architecture-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.85rem;
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        th,
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background: #6366f1;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .feature-item {
+            background: #f8fafc;
+            border-left: 3px solid #6366f1;
+            padding: 12px 15px;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .feature-item strong {
+            color: #3730a3;
+        }
+
+        ul {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .flow-number {
+            background: #6366f1;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .tech-item {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .tech-item .name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .tech-item .purpose {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        @media print {
+            body {
+                padding: 20px 40px;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+
+            h2 {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>GrudAI</h1>
+        <div class="subtitle">Architecture & Design Documentation</div>
+        <div class="date">Version 1.0 | January 2026</div>
+    </div>
+
+    <div class="section">
+        <h2>1. Executive Summary</h2>
+        <p>
+            GrudAI is a full-stack AI chatbot platform that enables users to create and manage multiple AI-powered
+            conversational agents. The application leverages modern web technologies and integrates with OpenRouter API
+            to provide access to various large language models (LLMs) including GPT-4, Claude, Gemini, and Llama.
+        </p>
+        <p>
+            The platform features secure JWT-based authentication, real-time streaming responses, file analysis with OCR
+            capabilities, and a modern responsive user interface with dark/light theme support.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>2. Key Features</h2>
+        <div class="feature-list">
+            <div class="feature-item">
+                <strong>🔐 JWT Authentication</strong><br>
+                Secure login with bcrypt password hashing
+            </div>
+            <div class="feature-item">
+                <strong>💬 Real-time Streaming</strong><br>
+                Live SSE responses from LLM providers
+            </div>
+            <div class="feature-item">
+                <strong>📁 Project Management</strong><br>
+                Create multiple AI chatbot agents
+            </div>
+            <div class="feature-item">
+                <strong>🗂️ Conversations</strong><br>
+                Organize chats into threads
+            </div>
+            <div class="feature-item">
+                <strong>🔍 OCR Support</strong><br>
+                Extract text from images
+            </div>
+            <div class="feature-item">
+                <strong>📊 Mermaid Diagrams</strong><br>
+                Generate flowcharts in chat
+            </div>
+            <div class="feature-item">
+                <strong>🌗 Theme Toggle</strong><br>
+                Dark and light mode support
+            </div>
+            <div class="feature-item">
+                <strong>🤖 Multi-Model</strong><br>
+                GPT-4, Claude, Gemini, Llama
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>3. System Architecture</h2>
+        <p>
+            The application follows a client-server architecture with clear separation of concerns. The frontend is
+            built with React and communicates with the Express.js backend via RESTful APIs. Real-time chat responses are
+            delivered using Server-Sent Events (SSE).
+        </p>
+
+        <div class="architecture-box">┌─────────────────────────────────────────────────────────────────────┐
+            │ CLIENT (React + Vite) │
+            │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────────────┐ │
+            │ │ Login │ │Dashboard │ │ Chat │ │ Project Settings │ │
+            │ │ Register │ │ Projects │ │ Messages │ │ Prompts / Files │ │
+            │ └────┬─────┘ └────┬─────┘ └────┬─────┘ └──────────┬───────────┘ │
+            │ └─────────────┼───────────────┼──────────────────┘ │
+            │ ▼ ▼ │
+            │ ┌────────────────────────────────────┐ │
+            │ │ API Client Layer │ │
+            │ │ (Fetch + JWT Token Management) │ │
+            │ └──────────────┬─────────────────────┘ │
+            └─────────────────────────────┼───────────────────────────────────────┘
+            │ HTTP/REST + SSE
+            ▼
+            ┌─────────────────────────────────────────────────────────────────────┐
+            │ SERVER (Express.js) │
+            │ ┌───────────────────────────────────────────────────────────────┐ │
+            │ │ Middleware Layer │ │
+            │ │ CORS/JSON Parser │ Request Logging │ JWT Authentication │ │
+            │ └───────────────────────────────┬───────────────────────────────┘ │
+            │ ▼ │
+            │ ┌───────────────────────────────────────────────────────────────┐ │
+            │ │ Route Handlers │ │
+            │ │ Auth │ Projects │ Conversations │ Chat │ Files │ Prompts │ │
+            │ └───────────────────────────┬───────────────────────────────────┘ │
+            │ ▼ │
+            │ ┌─────────────────────────────────────────────┐ │
+            │ │ SQLite Database │ │
+            │ │ Users │ Projects │ Conversations │ Files │ │
+            │ └─────────────────────────────────────────────┘ │
+            └──────────────────────────────────┬──────────────────────────────────┘
+            ▼
+            ┌──────────────────────────────┐
+            │ OpenRouter API │
+            │ GPT-4 │ Claude │ Gemini │
+            └──────────────────────────────┘</div>
+    </div>
+
+    <div class="section">
+        <h2>4. Technology Stack</h2>
+
+        <h3>Frontend Technologies</h3>
+        <table>
+            <tr>
+                <th>Technology</th>
+                <th>Version</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>React</td>
+                <td>18.x</td>
+                <td>UI component framework</td>
+            </tr>
+            <tr>
+                <td>Vite</td>
+                <td>5.x</td>
+                <td>Build tool and dev server</td>
+            </tr>
+            <tr>
+                <td>React Router</td>
+                <td>6.x</td>
+                <td>Client-side routing</td>
+            </tr>
+            <tr>
+                <td>react-markdown</td>
+                <td>Latest</td>
+                <td>Markdown rendering</td>
+            </tr>
+            <tr>
+                <td>Mermaid</td>
+                <td>11.x</td>
+                <td>Diagram generation</td>
+            </tr>
+        </table>
+
+        <h3>Backend Technologies</h3>
+        <table>
+            <tr>
+                <th>Technology</th>
+                <th>Version</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>Node.js</td>
+                <td>18+</td>
+                <td>Runtime environment</td>
+            </tr>
+            <tr>
+                <td>Express.js</td>
+                <td>4.x</td>
+                <td>REST API framework</td>
+            </tr>
+            <tr>
+                <td>SQLite (sql.js)</td>
+                <td>1.x</td>
+                <td>Embedded database</td>
+            </tr>
+            <tr>
+                <td>jsonwebtoken</td>
+                <td>9.x</td>
+                <td>JWT authentication</td>
+            </tr>
+            <tr>
+                <td>Tesseract.js</td>
+                <td>7.x</td>
+                <td>OCR text extraction</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>5. Data Flow</h2>
+
+        <div class="flow-step">
+            <div class="flow-number">1</div>
+            <div>
+                <strong>Authentication Flow</strong><br>
+                User registers/logs in → Server validates credentials → JWT token issued → Token stored in localStorage
+                → All API calls include Authorization header
+            </div>
+        </div>
+
+        <div class="flow-step">
+            <div class="flow-number">2</div>
+            <div>
+                <strong>Chat Flow</strong><br>
+                User sends message → Server saves to database → Request sent to OpenRouter API → Response chunks
+                streamed via SSE → Frontend renders with markdown/mermaid support
+            </div>
+        </div>
+
+        <div class="flow-step">
+            <div class="flow-number">3</div>
+            <div>
+                <strong>File Upload Flow</strong><br>
+                User selects file → Upload via FormData → Server extracts text (OCR for images, pdf-parse for PDFs) →
+                Extracted text stored in database → Available as context for chat prompts
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>6. Database Schema</h2>
+        <div class="architecture-box">users
+            ├── id (PRIMARY KEY)
+            ├── email (UNIQUE)
+            ├── password_hash
+            ├── name
+            └── created_at
+
+            projects
+            ├── id (PRIMARY KEY)
+            ├── user_id (FK → users)
+            ├── name
+            ├── description
+            ├── system_prompt
+            ├── model
+            ├── created_at
+            └── updated_at
+
+            conversations
+            ├── id (PRIMARY KEY)
+            ├── project_id (FK → projects)
+            ├── title
+            ├── created_at
+            └── updated_at
+
+            messages
+            ├── id (PRIMARY KEY)
+            ├── project_id (FK → projects)
+            ├── conversation_id (FK → conversations)
+            ├── role (user/assistant)
+            ├── content
+            └── created_at
+
+            files
+            ├── id (PRIMARY KEY)
+            ├── project_id (FK → projects)
+            ├── filename
+            ├── original_name
+            ├── mime_type
+            ├── size
+            ├── extracted_text
+            └── created_at
+
+            prompts
+            ├── id (PRIMARY KEY)
+            ├── project_id (FK → projects)
+            ├── name
+            ├── content
+            └── created_at</div>
+    </div>
+
+    <div class="section">
+        <h2>7. Supported AI Models</h2>
+        <table>
+            <tr>
+                <th>Provider</th>
+                <th>Model</th>
+                <th>Model ID</th>
+            </tr>
+            <tr>
+                <td>OpenAI</td>
+                <td>GPT-3.5 Turbo</td>
+                <td>openai/gpt-3.5-turbo</td>
+            </tr>
+            <tr>
+                <td>OpenAI</td>
+                <td>GPT-4o Mini</td>
+                <td>openai/gpt-4o-mini</td>
+            </tr>
+            <tr>
+                <td>OpenAI</td>
+                <td>GPT-4o</td>
+                <td>openai/gpt-4o</td>
+            </tr>
+            <tr>
+                <td>Anthropic</td>
+                <td>Claude 3.5 Sonnet</td>
+                <td>anthropic/claude-3.5-sonnet</td>
+            </tr>
+            <tr>
+                <td>Google</td>
+                <td>Gemini 2.5 Pro</td>
+                <td>google/gemini-2.5-pro-preview-03-25</td>
+            </tr>
+            <tr>
+                <td>Meta</td>
+                <td>Llama 3.3 70B</td>
+                <td>meta-llama/llama-3.3-70b-instruct:free</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>8. Security Implementation</h2>
+        <table>
+            <tr>
+                <th>Security Feature</th>
+                <th>Implementation</th>
+            </tr>
+            <tr>
+                <td>Password Storage</td>
+                <td>bcrypt hashing with salt rounds</td>
+            </tr>
+            <tr>
+                <td>Authentication</td>
+                <td>JWT tokens with 7-day expiration</td>
+            </tr>
+            <tr>
+                <td>SQL Injection Prevention</td>
+                <td>Parameterized queries via sql.js</td>
+            </tr>
+            <tr>
+                <td>Cross-Origin Requests</td>
+                <td>CORS configured for allowed origins</td>
+            </tr>
+            <tr>
+                <td>API Key Security</td>
+                <td>Environment variables (never committed)</td>
+            </tr>
+            <tr>
+                <td>File Upload Safety</td>
+                <td>Validated file types and size limits</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>9. Design Decisions</h2>
+        <ul>
+            <li><strong>SQLite over PostgreSQL:</strong> Chosen for simplicity and zero-configuration deployment. Can be
+                migrated to PostgreSQL for production scaling.</li>
+            <li><strong>Server-Sent Events (SSE):</strong> Used for streaming chat responses instead of WebSockets for
+                simpler implementation and better HTTP/2 compatibility.</li>
+            <li><strong>OpenRouter API:</strong> Provides unified access to multiple LLM providers through a single API,
+                reducing integration complexity.</li>
+            <li><strong>Vite over Create React App:</strong> Faster development experience with hot module replacement
+                and optimized builds.</li>
+            <li><strong>CSS Variables for Theming:</strong> Enables seamless dark/light theme switching without
+                CSS-in-JS overhead.</li>
+            <li><strong>Tesseract.js for OCR:</strong> Client-side OCR processing without external API dependencies.
+            </li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p><strong>GrudAI</strong> - AI Chatbot Platform</p>
+        <p>Author: Sayyedsohaib M Yallur | GitHub: @Sahilyallur</p>
+        <p>Document Generated: January 2026</p>
+    </div>
+</body>
+
+</html>
