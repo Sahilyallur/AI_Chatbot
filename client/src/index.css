@@ -141,6 +141,7 @@ body {
   --glass-bg: rgba(255, 255, 255, 0.95);
   --glass-border: rgba(0, 0, 0, 0.06);
   --gradient-hero: linear-gradient(135deg, #fafafa 0%, #f4f4f5 50%, #fafafa 100%);
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
   --gradient-mesh:
     radial-gradient(at 40% 20%, rgba(113, 113, 122, 0.04) 0px, transparent 50%),
     radial-gradient(at 80% 0%, rgba(82, 82, 91, 0.03) 0px, transparent 50%),
@@ -601,21 +602,36 @@ img {
 
 .chat-input-wrapper {
   display: flex;
-  gap: var(--space-3);
   max-width: 900px;
   margin: 0 auto;
 }
 
-.chat-input {
+.chat-input-box {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
   flex: 1;
-  padding: var(--space-4);
-  font-size: var(--font-size-base);
+  padding: var(--space-2);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
+  transition: all var(--transition-fast);
+}
+
+.chat-input-box:focus-within {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.chat-input {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-base);
+  background: transparent;
+  border: none;
   color: var(--text-primary);
   resize: none;
-  min-height: 52px;
+  min-height: 40px;
   max-height: 200px;
   overflow-y: auto;
   scrollbar-width: none;
@@ -628,26 +644,30 @@ img {
 
 .chat-input:focus {
   outline: none;
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
 }
 
-.chat-send-btn {
-  padding: var(--space-4);
-  background: var(--gradient-primary);
+.chat-inline-btn {
+  padding: var(--space-2);
   border: none;
-  border-radius: var(--radius-xl);
-  color: white;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+}
+
+.chat-send-btn {
+  background: var(--gradient-primary);
+  color: white;
 }
 
 .chat-send-btn:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow-glow-sm);
 }
 
 .chat-send-btn:disabled {
@@ -657,22 +677,13 @@ img {
 
 /* File attachment button */
 .chat-attach-btn {
-  padding: var(--space-3);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: transparent;
   color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
 }
 
 .chat-attach-btn:hover:not(:disabled) {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   color: var(--primary-400);
-  border-color: var(--primary-500);
 }
 
 .chat-attach-btn:disabled {

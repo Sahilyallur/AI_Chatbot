@@ -119,75 +119,78 @@ export default function ChatInput({ onSend, onFileUpload, disabled, uploading })
             )}
 
             <form className="chat-input-wrapper" onSubmit={handleSubmit}>
-                {/* File attachment button with dropdown */}
-                <div className="file-attach-wrapper" ref={menuRef}>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                        style={{ display: 'none' }}
-                    />
-                    <button
-                        type="button"
-                        className="chat-attach-btn"
-                        onClick={toggleFileMenu}
+                <div className="chat-input-box">
+                    {/* File attachment button with dropdown */}
+                    <div className="file-attach-wrapper" ref={menuRef}>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileSelect}
+                            style={{ display: 'none' }}
+                        />
+                        <button
+                            type="button"
+                            className="chat-inline-btn chat-attach-btn"
+                            onClick={toggleFileMenu}
+                            disabled={disabled || uploading}
+                            title="Attach file"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                            </svg>
+                        </button>
+
+                        {/* File type dropdown menu */}
+                        {showFileMenu && (
+                            <div className="file-type-menu">
+                                <div className="file-type-menu-header">Select File Type</div>
+                                {FILE_TYPES.map(fileType => (
+                                    <button
+                                        key={fileType.id}
+                                        type="button"
+                                        className="file-type-option"
+                                        onClick={() => handleFileTypeSelect(fileType)}
+                                    >
+                                        <span className="file-type-icon">{fileType.icon}</span>
+                                        <div className="file-type-info">
+                                            <span className="file-type-label">{fileType.label}</span>
+                                            <span className="file-type-desc">{fileType.description}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <textarea
+                        ref={textareaRef}
+                        className="chat-input"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder={attachedFile
+                            ? "Add a prompt for your file... (Enter to send)"
+                            : "Type your message... (Enter to send, Shift+Enter for new line)"
+                        }
                         disabled={disabled || uploading}
-                        title="Attach file"
+                        rows={1}
+                    />
+
+                    <button
+                        type="submit"
+                        className="chat-inline-btn chat-send-btn"
+                        disabled={disabled || uploading || (!message.trim() && !attachedFile)}
                     >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                        </svg>
+                        {disabled || uploading ? (
+                            <div className="loading-spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
+                        ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="22" y1="2" x2="11" y2="13" />
+                                <polygon points="22,2 15,22 11,13 2,9" />
+                            </svg>
+                        )}
                     </button>
-
-                    {/* File type dropdown menu */}
-                    {showFileMenu && (
-                        <div className="file-type-menu">
-                            <div className="file-type-menu-header">Select File Type</div>
-                            {FILE_TYPES.map(fileType => (
-                                <button
-                                    key={fileType.id}
-                                    type="button"
-                                    className="file-type-option"
-                                    onClick={() => handleFileTypeSelect(fileType)}
-                                >
-                                    <span className="file-type-icon">{fileType.icon}</span>
-                                    <div className="file-type-info">
-                                        <span className="file-type-label">{fileType.label}</span>
-                                        <span className="file-type-desc">{fileType.description}</span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
-
-                <textarea
-                    ref={textareaRef}
-                    className="chat-input"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={attachedFile
-                        ? "Add a prompt for your file... (Enter to send)"
-                        : "Type your message... (Enter to send, Shift+Enter for new line)"
-                    }
-                    disabled={disabled || uploading}
-                    rows={1}
-                />
-                <button
-                    type="submit"
-                    className="chat-send-btn"
-                    disabled={disabled || uploading || (!message.trim() && !attachedFile)}
-                >
-                    {disabled || uploading ? (
-                        <div className="loading-spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
-                    ) : (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="22" y1="2" x2="11" y2="13" />
-                            <polygon points="22,2 15,22 11,13 2,9" />
-                        </svg>
-                    )}
-                </button>
             </form>
         </div>
     );

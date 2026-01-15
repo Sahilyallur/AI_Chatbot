@@ -599,13 +599,24 @@ export default function Chat() {
                             value={editProject.model || 'openai/gpt-3.5-turbo'}
                             onChange={(e) => setEditProject({ ...editProject, model: e.target.value })}
                         >
-                            <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                            <option value="openai/gpt-4">GPT-4</option>
-                            <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
-                            <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                            <option value="anthropic/claude-3-opus-20240229">Claude 3 Opus</option>
-                            <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
-                            <option value="meta-llama/llama-3-70b-instruct">Llama 3 70B</option>
+                            <optgroup label="OpenAI">
+                                <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                                <option value="openai/gpt-4o">GPT-4o</option>
+                                <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
+                            </optgroup>
+                            <optgroup label="Anthropic">
+                                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                                <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+                            </optgroup>
+                            <optgroup label="Google">
+                                <option value="google/gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro</option>
+                                <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                            </optgroup>
+                            <optgroup label="Meta">
+                                <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free)</option>
+                                <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B</option>
+                            </optgroup>
                         </select>
                     </div>
 
