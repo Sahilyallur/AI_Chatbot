@@ -1,13 +1,10 @@
 # Render Blueprint for GrudAI Chatbot
-# Deploy both frontend and backend with one click
 
 services:
   # Backend API Server
   - type: web
     name: grudai-server
     runtime: node
-    region: oregon
-    plan: free
     buildCommand: cd server && npm install
     startCommand: cd server && npm start
     healthCheckPath: /api/health
@@ -29,10 +26,9 @@ services:
       - key: FRONTEND_URL
         sync: false
 
+staticSites:
   # Frontend Static Site
-  - type: web
-    name: grudai-client
-    runtime: static
+  - name: grudai-client
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: client/dist
     routes:
