@@ -1,31 +1,7 @@
-# Render Blueprint for GrudAI Chatbot
+# Render Blueprint for GrudAI Frontend (Static Site Only)
+# Backend is deployed separately on Railway
 
 services:
-  # Backend API Server
-  - type: web
-    name: grudai-server
-    runtime: node
-    buildCommand: cd server && npm install
-    startCommand: cd server && npm start
-    healthCheckPath: /api/health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: JWT_SECRET
-        sync: false
-      - key: OPENROUTER_API_KEY
-        sync: false
-      - key: OPENROUTER_BASE_URL
-        value: https://openrouter.ai/api/v1
-      - key: DEFAULT_MODEL
-        value: openai/gpt-3.5-turbo
-      - key: TURSO_DATABASE_URL
-        sync: false
-      - key: TURSO_AUTH_TOKEN
-        sync: false
-      - key: FRONTEND_URL
-        sync: false
-
   # Frontend Static Site
   - type: web
     name: grudai-client
