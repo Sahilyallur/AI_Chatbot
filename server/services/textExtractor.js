@@ -2,11 +2,11 @@ import Tesseract from 'tesseract.js';
 import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
-import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 // These are CommonJS, need to use createRequire
 const require = createRequire(import.meta.url);
 const mammoth = require('mammoth');
+const pdfParse = require('pdf-parse');
 
 /**
  * Text Extractor Service
@@ -36,7 +36,7 @@ export async function extractFromImage(filePath) {
 }
 
 /**
- * Extract text from a PDF file using pdfjs-dist
+ * Extract text from a PDF file using pdf-parse
  * @param {string} filePath - Path to the PDF file
  * @returns {Promise<string>} - Extracted text
  */
@@ -53,25 +53,11 @@ export async function extractFromPDF(filePath) {
         const dataBuffer = fs.readFileSync(filePath);
         console.log('PDF buffer size:', dataBuffer.length, 'bytes');
 
-        // Convert buffer to Uint8Array for pdfjs
-        const data = new Uint8Array(dataBuffer);
+        // Use pdf-parse for Node.js compatible PDF extraction
+        const data = await pdfParse(dataBuffer);
+        console.log('PDF text extracted, length:', data.text.length);
 
-        // Load the PDF document
-        const pdf = await getDocument({ data, useSystemFonts: true }).promise;
-        console.log('PDF loaded, pages:', pdf.numPages);
-
-        let fullText = '';
-
-        // Extract text from each page
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            fullText += pageText + '\n';
-        }
-
-        console.log('PDF text extracted, length:', fullText.length);
-        return fullText.trim();
+        return data.text.trim();
     } catch (error) {
         console.error('PDF extraction error:', error.message);
         console.error('Full error:', error);
