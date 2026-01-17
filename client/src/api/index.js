@@ -1,4 +1,5 @@
-const API_BASE = '/api';
+// Use environment variable for production, fallback to /api for development (Vite proxy)
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Get stored auth token

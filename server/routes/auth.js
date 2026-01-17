@@ -29,7 +29,7 @@ router.post('/register', async (req, res) => {
         }
 
         // Check if user already exists
-        const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+        const existingUser = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
         if (existingUser) {
             return errorResponse(res, 409, 'Email exists', 'A user with this email already exists');
         }
@@ -42,10 +42,10 @@ router.post('/register', async (req, res) => {
         const stmt = db.prepare(
             'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)'
         );
-        stmt.run(email, passwordHash, name || null);
+        await stmt.run(email, passwordHash, name || null);
 
         // Get the created user by email (more reliable than lastInsertRowid)
-        const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+        const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
         if (!user) {
             console.error('User not found after registration');
@@ -80,7 +80,7 @@ router.post('/login', async (req, res) => {
         }
 
         // Find user
-        const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+        const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email);
         console.log('Login attempt for:', email, 'User found:', !!user);
 
         if (!user) {
@@ -114,7 +114,7 @@ router.post('/login', async (req, res) => {
  * POST /api/auth/verify
  * Verify token validity
  */
-router.post('/verify', (req, res) => {
+router.post('/verify', async (req, res) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -124,7 +124,7 @@ router.post('/verify', (req, res) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(decoded.id);
+        const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(decoded.id);
 
         if (!user) {
             return errorResponse(res, 401, 'User not found', 'User no longer exists');
@@ -137,4 +137,3 @@ router.post('/verify', (req, res) => {
 });
 
 export default router;
-

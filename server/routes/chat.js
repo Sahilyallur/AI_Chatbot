@@ -13,13 +13,13 @@ router.use(authenticateToken);
  * GET /api/projects/:projectId/messages
  * Get chat history for a project (optionally filtered by conversation)
  */
-router.get('/projects/:projectId/messages', (req, res) => {
+router.get('/projects/:projectId/messages', async (req, res) => {
     try {
         const { projectId } = req.params;
         const { limit = 50, offset = 0, conversationId } = req.query;
 
         // Verify project belongs to user
-        const project = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!project) {
@@ -30,25 +30,27 @@ router.get('/projects/:projectId/messages', (req, res) => {
         let total;
 
         if (conversationId) {
-            messages = db.prepare(`
+            messages = await db.prepare(`
                 SELECT * FROM messages 
                 WHERE project_id = ? AND conversation_id = ?
                 ORDER BY created_at ASC
                 LIMIT ? OFFSET ?
             `).all(projectId, conversationId, parseInt(limit), parseInt(offset));
 
-            total = db.prepare('SELECT COUNT(*) as count FROM messages WHERE project_id = ? AND conversation_id = ?')
-                .get(projectId, conversationId).count;
+            const totalResult = await db.prepare('SELECT COUNT(*) as count FROM messages WHERE project_id = ? AND conversation_id = ?')
+                .get(projectId, conversationId);
+            total = totalResult.count;
         } else {
-            messages = db.prepare(`
+            messages = await db.prepare(`
                 SELECT * FROM messages 
                 WHERE project_id = ? 
                 ORDER BY created_at ASC
                 LIMIT ? OFFSET ?
             `).all(projectId, parseInt(limit), parseInt(offset));
 
-            total = db.prepare('SELECT COUNT(*) as count FROM messages WHERE project_id = ?')
-                .get(projectId).count;
+            const totalResult = await db.prepare('SELECT COUNT(*) as count FROM messages WHERE project_id = ?')
+                .get(projectId);
+            total = totalResult.count;
         }
 
         return successResponse(res, { messages, total });
@@ -72,7 +74,7 @@ router.post('/projects/:projectId/chat', async (req, res) => {
         }
 
         // Verify project belongs to user
-        const project = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!project) {
@@ -84,14 +86,14 @@ router.post('/projects/:projectId/chat', async (req, res) => {
 
         if (conversationId) {
             // Verify conversation exists
-            const conv = db.prepare('SELECT * FROM conversations WHERE id = ? AND project_id = ?')
+            const conv = await db.prepare('SELECT * FROM conversations WHERE id = ? AND project_id = ?')
                 .get(conversationId, projectId);
             if (!conv) {
                 return errorResponse(res, 404, 'Not found', 'Conversation not found');
             }
 
             // Update conversation timestamp
-            db.prepare('UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            await db.prepare('UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')
                 .run(conversationId);
         }
 
@@ -100,7 +102,7 @@ router.post('/projects/:projectId/chat', async (req, res) => {
             INSERT INTO messages (project_id, conversation_id, role, content)
             VALUES (?, ?, 'user', ?)
         `);
-        userMsgStmt.run(projectId, actualConversationId || null, message.trim());
+        await userMsgStmt.run(projectId, actualConversationId || null, message.trim());
 
         // Build messages array for the API
         const systemMessages = [];
@@ -116,7 +118,7 @@ router.post('/projects/:projectId/chat', async (req, res) => {
         // Add file context if fileIds are provided
         if (fileIds && Array.isArray(fileIds) && fileIds.length > 0) {
             const filePlaceholders = fileIds.map(() => '?').join(',');
-            const files = db.prepare(`
+            const files = await db.prepare(`
                 SELECT original_name, extracted_text FROM files 
                 WHERE id IN (${filePlaceholders}) AND project_id = ?
             `).all(...fileIds, projectId);
@@ -137,7 +139,7 @@ router.post('/projects/:projectId/chat', async (req, res) => {
 
         // Optionally use a saved prompt
         if (usePrompt) {
-            const prompt = db.prepare(`
+            const prompt = await db.prepare(`
                 SELECT * FROM prompts 
                 WHERE id = ? AND project_id = ?
             `).get(usePrompt, projectId);
@@ -153,19 +155,21 @@ router.post('/projects/:projectId/chat', async (req, res) => {
         // Get recent conversation history (last 20 messages from this conversation)
         let history;
         if (actualConversationId) {
-            history = db.prepare(`
+            history = await db.prepare(`
                 SELECT role, content FROM messages 
                 WHERE project_id = ? AND conversation_id = ?
                 ORDER BY created_at DESC 
                 LIMIT 20
-            `).all(projectId, actualConversationId).reverse();
+            `).all(projectId, actualConversationId);
+            history = history.reverse();
         } else {
-            history = db.prepare(`
+            history = await db.prepare(`
                 SELECT role, content FROM messages 
                 WHERE project_id = ? AND conversation_id IS NULL
                 ORDER BY created_at DESC 
                 LIMIT 20
-            `).all(projectId).reverse();
+            `).all(projectId);
+            history = history.reverse();
         }
 
         // Remove the last message (the one we just added) from history
@@ -304,7 +308,7 @@ router.post('/projects/:projectId/chat', async (req, res) => {
 
                 // Save assistant message
                 if (fullResponse) {
-                    db.prepare(`
+                    await db.prepare(`
                         INSERT INTO messages (project_id, conversation_id, role, content)
                         VALUES (?, ?, 'assistant', ?)
                     `).run(projectId, actualConversationId || null, fullResponse);
@@ -330,7 +334,7 @@ router.post('/projects/:projectId/chat', async (req, res) => {
                 const assistantMessage = response.choices?.[0]?.message?.content || '';
 
                 // Save assistant message
-                db.prepare(`
+                await db.prepare(`
                     INSERT INTO messages (project_id, conversation_id, role, content)
                     VALUES (?, ?, 'assistant', ?)
                 `).run(projectId, actualConversationId || null, assistantMessage);
@@ -356,13 +360,13 @@ router.post('/projects/:projectId/chat', async (req, res) => {
  * DELETE /api/projects/:projectId/messages
  * Clear chat history for a project (optionally for a specific conversation)
  */
-router.delete('/projects/:projectId/messages', (req, res) => {
+router.delete('/projects/:projectId/messages', async (req, res) => {
     try {
         const { projectId } = req.params;
         const { conversationId } = req.query;
 
         // Verify project belongs to user
-        const project = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!project) {
@@ -370,10 +374,10 @@ router.delete('/projects/:projectId/messages', (req, res) => {
         }
 
         if (conversationId) {
-            db.prepare('DELETE FROM messages WHERE project_id = ? AND conversation_id = ?')
+            await db.prepare('DELETE FROM messages WHERE project_id = ? AND conversation_id = ?')
                 .run(projectId, conversationId);
         } else {
-            db.prepare('DELETE FROM messages WHERE project_id = ?').run(projectId);
+            await db.prepare('DELETE FROM messages WHERE project_id = ?').run(projectId);
         }
 
         return successResponse(res, null, 'Chat history cleared');

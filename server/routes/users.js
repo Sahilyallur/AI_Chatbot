@@ -13,9 +13,9 @@ router.use(authenticateToken);
  * GET /api/users/me
  * Get current user profile
  */
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
     try {
-        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+        const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
 
         if (!user) {
             return errorResponse(res, 404, 'Not found', 'User not found');
@@ -38,7 +38,7 @@ router.put('/me', async (req, res) => {
         const userId = req.user.id;
 
         // Get current user
-        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+        const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
         if (!user) {
             return errorResponse(res, 404, 'Not found', 'User not found');
         }
@@ -55,7 +55,7 @@ router.put('/me', async (req, res) => {
         // Update email if provided
         if (email && email !== user.email) {
             // Check if email is already taken
-            const existingUser = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, userId);
+            const existingUser = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, userId);
             if (existingUser) {
                 return errorResponse(res, 409, 'Email exists', 'This email is already in use');
             }
@@ -89,10 +89,10 @@ router.put('/me', async (req, res) => {
         params.push(userId);
 
         const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
-        db.prepare(sql).run(...params);
+        await db.prepare(sql).run(...params);
 
         // Get updated user
-        const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+        const updatedUser = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
 
         return successResponse(res, { user: sanitizeUser(updatedUser) }, 'Profile updated successfully');
 

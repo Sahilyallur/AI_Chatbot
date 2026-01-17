@@ -18,7 +18,7 @@
     "multer": "^1.4.5-lts.1",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.4.530",
-    "sql.js": "^1.10.2",
+    "@libsql/client": "^0.14.0",
     "tesseract.js": "^7.0.0",
     "uuid": "^9.0.1"
   }

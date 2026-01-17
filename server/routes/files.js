@@ -67,19 +67,19 @@ router.use(authenticateToken);
  * GET /api/projects/:projectId/files
  * List all files for a project
  */
-router.get('/projects/:projectId/files', (req, res) => {
+router.get('/projects/:projectId/files', async (req, res) => {
     try {
         const { projectId } = req.params;
 
         // Verify project belongs to user
-        const project = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!project) {
             return errorResponse(res, 404, 'Not found', 'Project not found');
         }
 
-        const files = db.prepare(`
+        const files = await db.prepare(`
             SELECT id, project_id, filename, original_name, mime_type, size, 
                    extraction_method, created_at,
                    CASE WHEN extracted_text IS NOT NULL AND extracted_text != '' THEN 1 ELSE 0 END as has_text
@@ -109,7 +109,7 @@ router.post('/projects/:projectId/files', upload.single('file'), async (req, res
         }
 
         // Verify project belongs to user
-        const project = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!project) {
@@ -140,7 +140,7 @@ router.post('/projects/:projectId/files', upload.single('file'), async (req, res
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
 
-        stmt.run(
+        await stmt.run(
             projectId,
             req.file.filename,
             req.file.originalname,
@@ -151,7 +151,7 @@ router.post('/projects/:projectId/files', upload.single('file'), async (req, res
         );
 
         // Fetch using filename (more reliable than lastInsertRowid)
-        const file = db.prepare(`
+        const file = await db.prepare(`
             SELECT id, project_id, filename, original_name, mime_type, size, 
                    extraction_method, created_at,
                    CASE WHEN extracted_text IS NOT NULL AND extracted_text != '' THEN 1 ELSE 0 END as has_text
@@ -181,12 +181,12 @@ router.post('/projects/:projectId/files', upload.single('file'), async (req, res
  * GET /api/files/:id/text
  * Get the extracted text from a file
  */
-router.get('/files/:id/text', (req, res) => {
+router.get('/files/:id/text', async (req, res) => {
     try {
         const fileId = req.params.id;
 
         // Verify file exists and belongs to user's project
-        const file = db.prepare(`
+        const file = await db.prepare(`
             SELECT f.extracted_text, f.extraction_method, f.original_name FROM files f
             JOIN projects p ON f.project_id = p.id
             WHERE f.id = ? AND p.user_id = ?
@@ -211,12 +211,12 @@ router.get('/files/:id/text', (req, res) => {
  * GET /api/files/:id
  * Download a file
  */
-router.get('/files/:id', (req, res) => {
+router.get('/files/:id', async (req, res) => {
     try {
         const fileId = req.params.id;
 
         // Verify file exists and belongs to user's project
-        const file = db.prepare(`
+        const file = await db.prepare(`
             SELECT f.* FROM files f
             JOIN projects p ON f.project_id = p.id
             WHERE f.id = ? AND p.user_id = ?
@@ -246,12 +246,12 @@ router.get('/files/:id', (req, res) => {
  * DELETE /api/files/:id
  * Delete a file
  */
-router.delete('/files/:id', (req, res) => {
+router.delete('/files/:id', async (req, res) => {
     try {
         const fileId = req.params.id;
 
         // Verify file exists and belongs to user's project
-        const file = db.prepare(`
+        const file = await db.prepare(`
             SELECT f.* FROM files f
             JOIN projects p ON f.project_id = p.id
             WHERE f.id = ? AND p.user_id = ?
@@ -268,7 +268,7 @@ router.delete('/files/:id', (req, res) => {
         }
 
         // Delete from database
-        db.prepare('DELETE FROM files WHERE id = ?').run(fileId);
+        await db.prepare('DELETE FROM files WHERE id = ?').run(fileId);
 
         return successResponse(res, null, 'File deleted successfully');
     } catch (error) {

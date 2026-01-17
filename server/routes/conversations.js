@@ -12,19 +12,19 @@ router.use(authenticateToken);
  * GET /api/projects/:projectId/conversations
  * List all conversations for a project
  */
-router.get('/projects/:projectId/conversations', (req, res) => {
+router.get('/projects/:projectId/conversations', async (req, res) => {
     try {
         const { projectId } = req.params;
 
         // Verify project belongs to user
-        const project = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!project) {
             return errorResponse(res, 404, 'Not found', 'Project not found');
         }
 
-        const conversations = db.prepare(`
+        const conversations = await db.prepare(`
             SELECT c.*, 
                    (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) as message_count,
                    (SELECT content FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
@@ -44,13 +44,13 @@ router.get('/projects/:projectId/conversations', (req, res) => {
  * POST /api/projects/:projectId/conversations
  * Create a new conversation
  */
-router.post('/projects/:projectId/conversations', (req, res) => {
+router.post('/projects/:projectId/conversations', async (req, res) => {
     try {
         const { projectId } = req.params;
         const { title } = req.body;
 
         // Verify project belongs to user
-        const project = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const project = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!project) {
@@ -60,10 +60,10 @@ router.post('/projects/:projectId/conversations', (req, res) => {
         const stmt = db.prepare(
             'INSERT INTO conversations (project_id, title) VALUES (?, ?)'
         );
-        stmt.run(projectId, title || 'New Chat');
+        await stmt.run(projectId, title || 'New Chat');
 
         // Get the created conversation
-        const conversation = db.prepare(
+        const conversation = await db.prepare(
             'SELECT * FROM conversations WHERE project_id = ? ORDER BY created_at DESC LIMIT 1'
         ).get(projectId);
 
@@ -78,13 +78,13 @@ router.post('/projects/:projectId/conversations', (req, res) => {
  * PUT /api/conversations/:id
  * Update a conversation (e.g., rename)
  */
-router.put('/conversations/:id', (req, res) => {
+router.put('/conversations/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { title } = req.body;
 
         // Verify conversation belongs to user's project
-        const conversation = db.prepare(`
+        const conversation = await db.prepare(`
             SELECT c.* FROM conversations c
             JOIN projects p ON c.project_id = p.id
             WHERE c.id = ? AND p.user_id = ?
@@ -94,11 +94,11 @@ router.put('/conversations/:id', (req, res) => {
             return errorResponse(res, 404, 'Not found', 'Conversation not found');
         }
 
-        db.prepare(
+        await db.prepare(
             'UPDATE conversations SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
         ).run(title || conversation.title, id);
 
-        const updated = db.prepare('SELECT * FROM conversations WHERE id = ?').get(id);
+        const updated = await db.prepare('SELECT * FROM conversations WHERE id = ?').get(id);
 
         return successResponse(res, { conversation: updated }, 'Conversation updated');
     } catch (error) {
@@ -111,12 +111,12 @@ router.put('/conversations/:id', (req, res) => {
  * DELETE /api/conversations/:id
  * Delete a conversation and its messages
  */
-router.delete('/conversations/:id', (req, res) => {
+router.delete('/conversations/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
         // Verify conversation belongs to user's project
-        const conversation = db.prepare(`
+        const conversation = await db.prepare(`
             SELECT c.* FROM conversations c
             JOIN projects p ON c.project_id = p.id
             WHERE c.id = ? AND p.user_id = ?
@@ -126,7 +126,7 @@ router.delete('/conversations/:id', (req, res) => {
             return errorResponse(res, 404, 'Not found', 'Conversation not found');
         }
 
-        db.prepare('DELETE FROM conversations WHERE id = ?').run(id);
+        await db.prepare('DELETE FROM conversations WHERE id = ?').run(id);
 
         return successResponse(res, null, 'Conversation deleted');
     } catch (error) {

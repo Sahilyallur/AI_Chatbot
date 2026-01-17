@@ -448,7 +448,7 @@ export default function Chat() {
 
                     {/* Project Info & Actions */}
                     {!sidebarCollapsed && (
-                        <div style={{ borderTop: '1px solid var(--border-color)', padding: 'var(--space-3) var(--space-4)' }}>
+                        <div style={{ borderTop: '1px solid var(--border-color)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-4)' }}>
                             <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: 'var(--space-2)', color: 'var(--text-primary)' }}>
                                 {project?.name}
                             </div>

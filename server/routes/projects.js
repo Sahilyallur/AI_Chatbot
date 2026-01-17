@@ -12,9 +12,9 @@ router.use(authenticateToken);
  * GET /api/projects
  * List all projects for the current user
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const projects = db.prepare(`
+        const projects = await db.prepare(`
             SELECT p.*, 
                    (SELECT COUNT(*) FROM messages WHERE project_id = p.id) as message_count,
                    (SELECT COUNT(*) FROM prompts WHERE project_id = p.id) as prompt_count
@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
  * POST /api/projects
  * Create a new project/agent
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     try {
         const { name, description, system_prompt, model } = req.body;
 
@@ -48,7 +48,7 @@ router.post('/', (req, res) => {
             VALUES (?, ?, ?, ?, ?)
         `);
 
-        stmt.run(
+        await stmt.run(
             req.user.id,
             trimmedName,
             description || null,
@@ -57,7 +57,7 @@ router.post('/', (req, res) => {
         );
 
         // Get the created project by name and user (more reliable)
-        const project = db.prepare(
+        const project = await db.prepare(
             'SELECT * FROM projects WHERE user_id = ? AND name = ? ORDER BY created_at DESC LIMIT 1'
         ).get(req.user.id, trimmedName);
 
@@ -76,9 +76,9 @@ router.post('/', (req, res) => {
  * GET /api/projects/:id
  * Get a specific project
  */
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
-        const project = db.prepare(`
+        const project = await db.prepare(`
             SELECT p.*,
                    (SELECT COUNT(*) FROM messages WHERE project_id = p.id) as message_count,
                    (SELECT COUNT(*) FROM prompts WHERE project_id = p.id) as prompt_count,
@@ -102,13 +102,13 @@ router.get('/:id', (req, res) => {
  * PUT /api/projects/:id
  * Update a project
  */
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
     try {
         const { name, description, system_prompt, model } = req.body;
         const projectId = req.params.id;
 
         // Check if project exists and belongs to user
-        const existing = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const existing = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!existing) {
@@ -125,7 +125,7 @@ router.put('/:id', (req, res) => {
             WHERE id = ? AND user_id = ?
         `);
 
-        stmt.run(
+        await stmt.run(
             name || null,
             description !== undefined ? description : null,
             system_prompt || null,
@@ -134,7 +134,7 @@ router.put('/:id', (req, res) => {
             req.user.id
         );
 
-        const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+        const project = await db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
 
         return successResponse(res, { project }, 'Project updated successfully');
     } catch (error) {
@@ -147,12 +147,12 @@ router.put('/:id', (req, res) => {
  * DELETE /api/projects/:id
  * Delete a project and all associated data
  */
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
         const projectId = req.params.id;
 
         // Check if project exists and belongs to user
-        const existing = db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
+        const existing = await db.prepare('SELECT * FROM projects WHERE id = ? AND user_id = ?')
             .get(projectId, req.user.id);
 
         if (!existing) {
@@ -160,7 +160,7 @@ router.delete('/:id', (req, res) => {
         }
 
         // Delete project (cascade will delete related records)
-        db.prepare('DELETE FROM projects WHERE id = ?').run(projectId);
+        await db.prepare('DELETE FROM projects WHERE id = ?').run(projectId);
 
         return successResponse(res, null, 'Project deleted successfully');
     } catch (error) {
