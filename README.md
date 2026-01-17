@@ -2,16 +2,18 @@
 
 A full-stack AI chatbot platform with JWT authentication, project management, real-time streaming chat, file analysis with OCR, and multi-model support via OpenRouter API.
 
-![Node.js](https://img.shields.io/badge/Node.js-18+-green) ![React](https://img.shields.io/badge/React-18-blue) ![SQLite](https://img.shields.io/badge/SQLite-3-orange) ![Vite](https://img.shields.io/badge/Vite-5-purple)
+![Node.js](https://img.shields.io/badge/Node.js-18+-green) ![React](https://img.shields.io/badge/React-18-blue) ![Turso](https://img.shields.io/badge/Turso-SQLite-orange) ![Vite](https://img.shields.io/badge/Vite-5-purple) ![Railway](https://img.shields.io/badge/Railway-Backend-blueviolet) ![Render](https://img.shields.io/badge/Render-Frontend-46E3B7)
 
 ---
 
 ## 📖 Table of Contents
 
 - [Features](#-features)
+- [Live Demo](#-live-demo)
 - [Screenshots](#-screenshots)
 - [Architecture](#-architecture)
 - [Tech Stack](#-tech-stack)
+- [Deployment](#-deployment)
 - [Getting Started](#-getting-started)
 - [API Documentation](#-api-documentation)
 - [Project Structure](#-project-structure)
@@ -37,6 +39,15 @@ A full-stack AI chatbot platform with JWT authentication, project management, re
 | 🤖 **Multi-Model Support** | Access GPT-4o, Claude, Gemini, Llama via OpenRouter |
 | 💾 **Saved Prompts** | Store and reuse custom system prompts |
 | 🎨 **Modern UI** | Sleek interface with smooth animations |
+
+---
+
+## 🌐 Live Demo
+
+| Component | URL |
+|-----------|-----|
+| **Frontend** | [https://grudai-client-xppo.onrender.com](https://grudai-client-xppo.onrender.com) |
+| **Backend API** | [https://aichatbot-production-d986.up.railway.app](https://aichatbot-production-d986.up.railway.app) |
 
 ---
 
@@ -165,7 +176,7 @@ users (id, email, password_hash, name, created_at)
 |------------|---------|
 | Node.js 18+ | Runtime environment |
 | Express.js | REST API framework |
-| SQLite (sql.js) | Embedded database |
+| Turso (@libsql/client) | Cloud SQLite database |
 | JWT (jsonwebtoken) | Token-based authentication |
 | bcryptjs | Password hashing |
 | Multer | File upload handling |
@@ -178,6 +189,66 @@ users (id, email, password_hash, name, created_at)
 | Service | Purpose |
 |---------|---------|
 | OpenRouter API | Unified access to multiple LLM providers |
+| Turso | Cloud-hosted SQLite database |
+
+### Deployment Platforms
+
+| Platform | Purpose |
+|----------|---------|
+| Railway | Backend hosting (Node.js) |
+| Render | Frontend hosting (static site) |
+| Turso | Persistent cloud database |
+
+---
+
+## 🚀 Deployment
+
+The application is deployed using a modern cloud-native architecture:
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      PRODUCTION DEPLOYMENT                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────┐        ┌─────────────────┐                 │
+│  │     Render      │        │    Railway      │                 │
+│  │   Static Site   │───────▶│   Node.js API   │                 │
+│  │   (Frontend)    │  API   │   (Backend)     │                 │
+│  └─────────────────┘        └────────┬────────┘                 │
+│                                      │                          │
+│                                      ▼                          │
+│                           ┌─────────────────┐                   │
+│                           │     Turso       │                   │
+│                           │  Cloud SQLite   │                   │
+│                           │   (Database)    │                   │
+│                           └─────────────────┘                   │
+│                                      │                          │
+│                                      ▼                          │
+│                           ┌─────────────────┐                   │
+│                           │   OpenRouter    │                   │
+│                           │   LLM APIs      │                   │
+│                           └─────────────────┘                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Environment Variables
+
+**Railway (Backend):**
+| Variable | Description |
+|----------|-------------|
+| `JWT_SECRET` | Secret key for JWT signing |
+| `OPENROUTER_API_KEY` | OpenRouter API key |
+| `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` |
+| `TURSO_DATABASE_URL` | Turso database URL |
+| `TURSO_AUTH_TOKEN` | Turso authentication token |
+| `FRONTEND_URL` | Render frontend URL (for CORS) |
+
+**Render (Frontend):**
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Railway backend URL + `/api` |
 
 ---
 

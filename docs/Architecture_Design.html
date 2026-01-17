@@ -376,9 +376,9 @@
                 <td>REST API framework</td>
             </tr>
             <tr>
-                <td>SQLite (sql.js)</td>
-                <td>1.x</td>
-                <td>Embedded database</td>
+                <td>Turso (@libsql/client)</td>
+                <td>0.14.x</td>
+                <td>Cloud SQLite database</td>
             </tr>
             <tr>
                 <td>jsonwebtoken</td>
@@ -518,7 +518,51 @@
     </div>
 
     <div class="section">
-        <h2>8. Security Implementation</h2>
+        <h2>8. Deployment Architecture</h2>
+        <p>
+            The application is deployed using a modern cloud-native architecture with separate hosting for frontend,
+            backend, and database services.
+        </p>
+
+        <h3>Deployment Stack</h3>
+        <div class="tech-stack">
+            <div class="tech-item">
+                <div class="name">Render</div>
+                <div class="purpose">Frontend Static Site</div>
+            </div>
+            <div class="tech-item">
+                <div class="name">Railway</div>
+                <div class="purpose">Backend Node.js API</div>
+            </div>
+            <div class="tech-item">
+                <div class="name">Turso</div>
+                <div class="purpose">Cloud SQLite DB</div>
+            </div>
+        </div>
+
+        <h3>Live URLs</h3>
+        <table>
+            <tr>
+                <th>Component</th>
+                <th>URL</th>
+            </tr>
+            <tr>
+                <td>Frontend</td>
+                <td>https://grudai-client-xppo.onrender.com</td>
+            </tr>
+            <tr>
+                <td>Backend API</td>
+                <td>https://aichatbot-production-d986.up.railway.app</td>
+            </tr>
+            <tr>
+                <td>Database</td>
+                <td>Turso Cloud (libsql protocol)</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>9. Security Implementation</h2>
         <table>
             <tr>
                 <th>Security Feature</th>
@@ -552,7 +596,7 @@
     </div>
 
     <div class="section">
-        <h2>9. Design Decisions</h2>
+        <h2>10. Design Decisions</h2>
         <ul>
             <li><strong>SQLite over PostgreSQL:</strong> Chosen for simplicity and zero-configuration deployment. Can be
                 migrated to PostgreSQL for production scaling.</li>
