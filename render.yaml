@@ -26,9 +26,9 @@ services:
       - key: FRONTEND_URL
         sync: false
 
-staticSites:
   # Frontend Static Site
-  - name: grudai-client
+  - type: static_site
+    name: grudai-client
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: client/dist
     routes:
