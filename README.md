@@ -467,33 +467,13 @@ AI_Chatbot/
 
 The application supports multiple AI models via OpenRouter:
 
-### OpenAI
-
 | Model | ID | Description |
 |-------|-----|-------------|
 | GPT-3.5 Turbo | `openai/gpt-3.5-turbo` | Fast, cost-effective |
 | GPT-4o Mini | `openai/gpt-4o-mini` | Balanced performance |
 | GPT-4o | `openai/gpt-4o` | Most capable |
-| GPT-4 Turbo | `openai/gpt-4-turbo` | High performance |
-
-### Anthropic
-
-| Model | ID | Description |
-|-------|-----|-------------|
-| Claude 3.5 Sonnet | `anthropic/claude-3.5-sonnet` | Best reasoning |
 | Claude 3 Haiku | `anthropic/claude-3-haiku` | Fast responses |
-
-### Google
-
-| Model | ID | Description |
-|-------|-----|-------------|
-| Gemini 2.5 Pro | `google/gemini-2.5-pro-preview-03-25` | Latest Gemini |
 | Gemini 2.0 Flash | `google/gemini-2.0-flash-001` | Fast Gemini |
-
-### Meta
-
-| Model | ID | Description |
-|-------|-----|-------------|
 | Llama 3.3 70B (Free) | `meta-llama/llama-3.3-70b-instruct:free` | Free tier |
 | Llama 3.1 70B | `meta-llama/llama-3.1-70b-instruct` | High quality |
 
